@@ -5,6 +5,8 @@ import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHan
 import { logger } from '../../utils/logger.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 
+const OWNER_ID = 'YOUR_DISCORD_USER_ID';
+
 export default {
     data: new SlashCommandBuilder()
         .setName('balance')
@@ -49,39 +51,49 @@ export default {
             );
         }
 
-        const maxBank = getMaxBankCapacity(userData);
+        const maxBank = targetUser.id === 1421980002693415024
+            ? Infinity
+            : getMaxBankCapacity(userData);
 
         const wallet = typeof userData.wallet === 'number' ? userData.wallet : 0;
         const bank = typeof userData.bank === 'number' ? userData.bank : 0;
 
-            const embed = createEmbed({
-                title: `${targetUser.username}'s Balance`,
-                description: `Here is the current financial status for ${targetUser.username}.`,
-            })
-                .addFields(
-                    {
-                        name: "💵 Cash",
-                        value: `$${wallet.toLocaleString()}`,
-                        inline: true,
-                    },
-                    {
-                        name: "🏦 Bank",
-                        value: `$${bank.toLocaleString()} / $${maxBank.toLocaleString()}`,
-                        inline: true,
-                    },
-                    {
-                        name: "💰 Total",
-                        value: `$${(wallet + bank).toLocaleString()}`,
-                        inline: true,
-                    }
-                )
-                .setFooter({
-                    text: `Requested by ${interaction.user.tag}`,
-                    iconURL: interaction.user.displayAvatarURL(),
-                });
+        const bankDisplay = maxBank === Infinity
+            ? '∞'
+            : `$${maxBank.toLocaleString()}`;
 
-            logger.info(`[ECONOMY] Balance retrieved`, { userId: targetUser.id, wallet, bank });
+        const embed = createEmbed({
+            title: `${targetUser.username}'s Balance`,
+            description: `Here is the current financial status for ${targetUser.username}.`,
+        })
+            .addFields(
+                {
+                    name: "💵 Cash",
+                    value: `$${wallet.toLocaleString()}`,
+                    inline: true,
+                },
+                {
+                    name: "🏦 Bank",
+                    value: `$${bank.toLocaleString()} / ${bankDisplay}`,
+                    inline: true,
+                },
+                {
+                    name: "💰 Total",
+                    value: `$${(wallet + bank).toLocaleString()}`,
+                    inline: true,
+                }
+            )
+            .setFooter({
+                text: `Requested by ${interaction.user.tag}`,
+                iconURL: interaction.user.displayAvatarURL(),
+            });
 
-            await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+        logger.info(`[ECONOMY] Balance retrieved`, {
+            userId: targetUser.id,
+            wallet,
+            bank,
+        });
+
+        await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
     }, { command: 'balance' })
 };
